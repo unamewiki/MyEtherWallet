@@ -5,18 +5,24 @@ on:
 
 jobs:
   offline-build:
-    # Use Ubuntu 20.04 to guarantee Python 3.8 (which includes distutils)
-    runs-on: ubuntu-20.04 
+    runs-on: ubuntu-latest # Uses modern Ubuntu so it doesn't get stuck in the queue
     
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # This step installs Python 3.10, which restores the 'distutils' 
+      # module that older C++ node-gyp packages desperately need!
+      - name: Setup Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
       - name: Setup Node.js 16
         uses: actions/setup-node@v4
         with:
           node-version: '16'
-          cache: 'npm' # This automatically handles caching for you!
+          cache: 'npm'
 
       - name: Bypass package test
         run: echo "process.exit(0);" > package-test.js
@@ -25,7 +31,6 @@ jobs:
         run: npm install --legacy-peer-deps
 
       - name: Build offline package
-        # Allocate extra memory to prevent Webpack from crashing
         run: NODE_OPTIONS="--max-old-space-size=8192" npm run build:offline
 
       - name: Create zip archive
